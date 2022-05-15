@@ -56,6 +56,9 @@ show_det = args.show_det
 show_seg = args.show_seg
 os.makedirs(output, exist_ok=True)
 
+# for cpu run
+args.cuda = False 
+
 use_cuda = args.cuda
 use_float16 = args.float16
 cudnn.fastest = True
@@ -97,6 +100,10 @@ if use_cuda:
 else:
     x = torch.stack([transform(fi) for fi in input_imgs], 0)
 
+# for float32 precision in cpu inference
+if not use_cuda:
+    use_float16 = False
+
 x = x.to(torch.float32 if not use_float16 else torch.float16)
 # print(x.shape)
 model = HybridNetsBackbone(compound_coef=compound_coef, num_classes=len(obj_list), ratios=eval(anchors_ratios),
@@ -110,8 +117,11 @@ model.eval()
 
 if use_cuda:
     model = model.cuda()
-if use_float16:
-    model = model.half()
+else:
+    model = model.float()
+# if use_float16:
+#     model = model.float()
+    
 
 with torch.no_grad():
     features, regression, classification, anchors, seg = model(x)

@@ -5,6 +5,7 @@ from utils.utils import Params
 from backbone import HybridNetsBackbone
 from pathlib import Path
 import os
+import time
 
 
 def hybridnets(pretrained=True, backbone=None, compound_coef=3, device='cpu'):
@@ -24,15 +25,31 @@ def hybridnets(pretrained=True, backbone=None, compound_coef=3, device='cpu'):
                                ratios=eval(params.anchors_ratios), scales=eval(params.anchors_scales),
                                seg_classes=len(params.seg_list), backbone_name=backbone)
     if pretrained and not backbone and compound_coef == 3:
-        weight_url = 'https://github.com/datvuthanh/HybridNets/releases/download/v1.0/hybridnets.pth'
-        model.load_state_dict(torch.hub.load_state_dict_from_url(weight_url, map_location=device))
+        # weight_url = 'https://github.com/datvuthanh/HybridNets/releases/download/v1.0/hybridnets.pth'
+        # model.load_state_dict(torch.hub.load_state_dict_from_url(weight_url, map_location=device))
+        
+        weight_path = 'weights/hybridnets.pth'
+        try:
+            model.load_state_dict(torch.load(
+                weight_path, map_location='cuda' if 'cuda' in device else 'cpu'))
+        except:
+            model.load_state_dict(torch.load(
+                weight_path, map_location='cuda' if 'cuda' in device else 'cpu')['model'])
     model = model.to(device)
     return model
 
 
 if __name__ == "__main__":
-    model = hybridnets(device='cpu')
+    # device_use = "cuda:0"
+    device_use = "cpu"
+    
+    model = hybridnets(device=device_use)
     img = torch.rand(1, 3, 384, 640)
-
+    if "cuda" in device_use:
+        img = img.cuda()
+    T1 = time.time()
     result = model(img)
     print(result)
+    T2 = time.time()
+    print(device_use + ': 程序运行时间:%s秒' % (T2 - T1))
+
